@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>airplanner - Ryanair trip finder</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+
+<header class="topbar">
+    <h1>airplanner</h1>
+    <p>Ryanair trips from several home airports, filtered by weekday and time of day.</p>
+    <p><a th:href="@{/duffel}">More airlines — search exact dates with Duffel</a></p>
+</header>
+
+<main>
+
+    <form class="card form" method="get" th:action="@{/}" th:object="${form}" id="searchForm">
+
+        <section class="row" id="savedSearches" hidden>
+            <label class="field grow">
+                <span>Saved searches (this browser)</span>
+                <select id="savedSearchSelect" aria-label="Saved searches">
+                    <option value="">Choose a saved search</option>
+                </select>
+            </label>
+            <button type="button" id="saveSearch">Save current search</button>
+            <button type="button" id="loadSearch" disabled>Load</button>
+            <button type="button" id="deleteSearch" disabled>Delete</button>
+        </section>
+        <p id="savedSearchStatus" class="hint" role="status"></p>
+
+        <section class="row">
+            <label class="field grow">
+                <span>Fly from</span>
+                <input type="text" th:field="*{from}" list="airports" placeholder="VIE, BTS or vienna, spain"
+                       autocomplete="off" required>
+                <small>IATA codes, cities or countries, comma separated. Tick the ones you can drive to.</small>
+            </label>
+            <label class="field grow">
+                <span>Fly to</span>
+                <input type="text" th:field="*{to}" list="airports" placeholder="leave empty for anywhere"
+                       autocomplete="off">
+                <small>Codes, cities, countries, or a group like "greek islands". Empty searches everywhere.</small>
+            </label>
+        </section>
+
+        <section class="row picks" th:if="${not #lists.isEmpty(originPicks)}">
+            <span class="picks-label">Home airports</span>
+            <label class="chip" th:each="p : ${originPicks}" th:title="${p.title()}"
+                   th:classappend="${p.available()} ? '' : 'unavailable'">
+                <input type="checkbox" class="pick-origin" th:value="${p.value()}"
+                       th:disabled="${not p.available()}">
+                <span th:text="${p.label()}">Vienna</span>
+            </label>
+        </section>
+
+        <section class="row picks">
+            <span class="picks-label">Airlines</span>
+            <!-- Always posted, so "nothing ticked" is distinguishable from "page not touched". -->
+            <input type="hidden" name="airlines" value="">
+            <label class="chip" th:each="a : ${airlines}"
+                   th:title="${a.hasFares()} ? 'Fares are read directly from ' + ${a.displayName()}
+                             : ${a.displayName()} + ' publishes no usable fare API - its routes are flagged so you can price them there'">
+                <input type="checkbox" name="airlines" th:value="${a.name()}"
+                       th:checked="${form.airlines.contains(a.name())}">
+                <span th:text="${a.hasFares()} ? ${a.displayName()} : ${a.displayName()} + ' (routes only)'">
+                    Ryanair</span>
+            </label>
+        </section>
+
+        <p class="hint" style="margin:-0.5rem 0 0.9rem">
+            Prices here currently come from Ryanair. Wizz Air adds route comparison links only.
+            Use the <strong>all</strong> link to search the same dates on Google Flights;
+            airline and fare coverage may vary.
+        </p>
+
+        <section class="row picks">
+            <span class="picks-label">Destination groups</span>
+            <label class="chip" th:each="g : ${groups}" th:title="${g.description()}">
+                <input type="checkbox" class="pick-destination" th:value="${g.name()}">
+                <span th:text="${g.name()}">greek islands</span>
+            </label>
+        </section>
+
+        <section class="row">
+            <label class="field">
+                <span>Earliest departure</span>
+                <input type="date" th:field="*{departFrom}">
+            </label>
+            <label class="field">
+                <span>Latest departure</span>
+                <input type="date" th:field="*{departTo}">
+            </label>
+            <label class="field small">
+                <span>Nights from</span>
+                <input type="number" min="0" max="60" th:field="*{minNights}">
+            </label>
+            <label class="field small">
+                <span>to</span>
+                <input type="number" min="0" max="60" th:field="*{maxNights}">
+            </label>
+            <label class="field check">
+                <input type="checkbox" name="oneWay" value="true" th:checked="${form.oneWay}" id="oneWay">
+                <span>One way</span>
+            </label>
+        </section>
+
+        <div class="legs">
+            <fieldset class="leg">
+                <legend>Outbound</legend>
+                <div class="days">
+                    <label class="chip" th:each="d : ${weekdays}">
+                        <input type="checkbox" name="outDays" th:value="${d}"
+                               th:checked="${form.outDays.contains(d.name())}">
+                        <span th:text="${d.name().substring(0,1) + d.name().substring(1,3).toLowerCase()}">Mon</span>
+                    </label>
+                </div>
+                <div class="times">
+                    <label class="field small">
+                        <span>Leaves after</span>
+                        <input type="time" th:field="*{outTimeFrom}">
+                    </label>
+                    <label class="field small">
+                        <span>and before</span>
+                        <input type="time" th:field="*{outTimeTo}">
+                    </label>
+                    <div class="presets" data-leg="out">
+                        <button type="button" data-from="06:00" data-to="11:59">morning</button>
+                        <button type="button" data-from="12:00" data-to="17:59">afternoon</button>
+                        <button type="button" data-from="18:00" data-to="23:59">evening</button>
+                        <button type="button" data-from="00:00" data-to="23:59">any</button>
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset class="leg" id="returnLeg">
+                <legend>Return</legend>
+                <div class="days">
+                    <label class="chip" th:each="d : ${weekdays}">
+                        <input type="checkbox" name="backDays" th:value="${d}"
+                               th:checked="${form.backDays.contains(d.name())}">
+                        <span th:text="${d.name().substring(0,1) + d.name().substring(1,3).toLowerCase()}">Mon</span>
+                    </label>
+                </div>
+                <div class="times">
+                    <label class="field small">
+                        <span>Leaves after</span>
+                        <input type="time" th:field="*{backTimeFrom}">
+                    </label>
+                    <label class="field small">
+                        <span>and before</span>
+                        <input type="time" th:field="*{backTimeTo}">
+                    </label>
+                    <div class="presets" data-leg="back">
+                        <button type="button" data-from="06:00" data-to="11:59">morning</button>
+                        <button type="button" data-from="12:00" data-to="17:59">afternoon</button>
+                        <button type="button" data-from="18:00" data-to="23:59">evening</button>
+                        <button type="button" data-from="00:00" data-to="23:59">any</button>
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+
+        <details class="more" th:open="${searched}">
+            <summary>More options</summary>
+            <section class="row">
+                <label class="field small">
+                    <span>Max price / adult</span>
+                    <input type="text" inputmode="decimal" th:field="*{budget}" placeholder="80">
+                </label>
+                <label class="field small">
+                    <span>Min stay</span>
+                    <input type="text" th:field="*{minStay}" placeholder="36h">
+                </label>
+                <label class="field small">
+                    <span>Adults</span>
+                    <input type="number" min="1" max="8" th:field="*{passengers}">
+                </label>
+                <label class="field small">
+                    <span>Currency</span>
+                    <input type="text" size="4" maxlength="3" th:field="*{currency}">
+                </label>
+                <label class="field small">
+                    <span>Sort by</span>
+                    <select th:field="*{sort}">
+                        <option th:each="s : ${sorts}" th:value="${s}"
+                                th:text="${s.name().toLowerCase()}">price</option>
+                    </select>
+                </label>
+                <label class="field small">
+                    <span>Show</span>
+                    <input type="number" min="1" max="200" th:field="*{limit}">
+                </label>
+                <label class="field small">
+                    <span>Per route</span>
+                    <input type="number" min="1" max="50" th:field="*{perRoute}">
+                </label>
+                <label class="field check">
+                    <input type="checkbox" name="fast" value="true" th:checked="${form.fast}">
+                    <span>Fast mode</span>
+                </label>
+            </section>
+            <p class="hint">
+                Fast mode skips the second pass that re-checks days whose cheapest flight falls outside your
+                time window. Fewer requests, but it can miss trips.
+            </p>
+        </details>
+
+        <div class="actions">
+            <button type="submit" class="primary" id="submitButton">Search flights</button>
+            <button type="button" class="ghost" id="weekendPreset">Weekend preset</button>
+            <span class="spinner" id="spinner" hidden>searching, this can take a few seconds...</span>
+        </div>
+    </form>
+
+    <datalist id="airports"></datalist>
+
+    <p class="error" th:if="${error}" th:text="${error}">something went wrong</p>
+
+    <section th:if="${searched != null and error == null}">
+
+        <div class="summary card">
+            <div>
+                <strong th:text="${#lists.size(rows)}">0</strong>
+                <span th:text="${#lists.size(rows) == 1 ? 'trip' : 'trips'}">trips</span>
+                <span th:if="${anywhere}" class="tag">anywhere search</span>
+            </div>
+            <div th:if="${cheapest != null}">
+                cheapest <strong th:text="${cheapest.price}">0</strong>
+                to <span th:text="${cheapest.destinationName}">somewhere</span>
+            </div>
+            <div class="muted">
+                <span th:text="${result.routesScanned()}">0</span> routes ·
+                <span th:text="${elapsedSeconds}">0</span>s ·
+                <span th:text="${result.networkCalls()}">0</span> requests
+                (<span th:text="${result.cacheHits()}">0</span> cached)
+            </div>
+            <div class="downloads">
+                <a th:href="@{'/export.csv?' + ${queryString}}">CSV</a>
+                <a th:href="@{'/api/search?' + ${queryString}}">JSON</a>
+            </div>
+        </div>
+
+        <p class="empty card" th:if="${#lists.isEmpty(rows)}">
+            Nothing matched. Widen the date range, add days of the week, or loosen the time windows.
+        </p>
+
+        <table class="results" th:unless="${#lists.isEmpty(rows)}">
+            <thead>
+            <tr>
+                <th>#</th>
+                <th>Route</th>
+                <th>Outbound</th>
+                <th th:unless="${form.oneWay}">Return</th>
+                <th th:unless="${form.oneWay}" class="num">Nights</th>
+                <th th:unless="${form.oneWay}" class="num">Stay</th>
+                <th class="num">Price</th>
+                <th th:if="${form.passengers > 1}" class="num">
+                    Total x<span th:text="${form.passengers}">2</span>
+                </th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="r : ${rows}">
+                <td class="muted" th:text="${r.index}">1</td>
+                <td>
+                    <strong th:text="${r.origin} + ' - ' + ${r.destination}">DUB - STN</strong>
+                    <br><span class="muted" th:text="${r.destinationName}">London</span>
+                </td>
+                <td>
+                    <span th:text="${r.outDate}">Fri 18 Sep</span>
+                    <br><span class="muted" th:text="${r.outTimes} + '  (' + ${r.outDuration} + ')'">22:00</span>
+                </td>
+                <td th:unless="${form.oneWay}">
+                    <span th:text="${r.inDate}">Sun 20 Sep</span>
+                    <br><span class="muted" th:text="${r.inTimes} + '  (' + ${r.inDuration} + ')'">08:30</span>
+                </td>
+                <td th:unless="${form.oneWay}" class="num" th:text="${r.nights}">2</td>
+                <td th:unless="${form.oneWay}" class="num muted" th:text="${r.stay}">1d 7h</td>
+                <td class="num price" th:text="${r.price}">29.98 EUR</td>
+                <td th:if="${form.passengers > 1}" class="num" th:text="${r.total}">59.96 EUR</td>
+                <td class="links">
+                    <a class="book" th:href="${r.link}" target="_blank" rel="noopener">book</a>
+                    <a class="also" th:each="o : ${r.alsoOn()}" th:href="${o.link()}" target="_blank" rel="noopener"
+                       th:title="${o.airline()} + ' flies this route too - no public fares, price it there'"
+                       th:text="${o.code()}">W6</a>
+                    <a class="also compare" th:href="${r.compareLink()}" target="_blank" rel="noopener"
+                       title="Every airline on these dates - easyJet, Eurowings, Vueling, Pegasus, Smartwings and the rest">all</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <p class="muted" style="margin-top:.6rem">
+            The price is always Ryanair's.
+            <span th:if="${wizzSelected}">A <strong>W6</strong> link means Wizz Air flies that route too -
+            they publish no usable fare API, so follow it to price those dates on wizzair.com.</span>
+            <strong>all</strong> opens the same route and dates across every airline, including the ones
+            that cannot be searched here.
+        </p>
+
+        <div class="notes card" th:if="${not #lists.isEmpty(notes)}">
+            <strong>Notes</strong>
+            <ul>
+                <li th:each="n : ${notes}" th:text="${n}">note</li>
+            </ul>
+        </div>
+    </section>
+
+</main>
+
+<footer>
+    Prices come from Ryanair's public endpoints, are per adult and exclude seats, bags and card fees.
+    Always confirm on ryanair.com before booking.
+</footer>
+
+<script th:src="@{/app.js}"></script>
+</body>
+</html>

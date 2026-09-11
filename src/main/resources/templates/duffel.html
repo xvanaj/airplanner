@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>airplanner - More airlines</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+<header class="topbar">
+    <h1>More airlines with Duffel</h1>
+    <p><a th:href="@{/}">Ryanair calendar search</a> · Exact dates, one route, more carriers.</p>
+</header>
+<main>
+    <section class="card">
+        <strong th:text="${provider.liveMode()} ? 'Live fares' : 'Test mode — sample fares only'">Test mode</strong>
+        <p th:if="${provider.reason() != null}" th:text="${provider.reason()}"></p>
+        <p>Each search sends one request. No booking is made. Leave the return date empty for a one-way trip.</p>
+        <p th:if="${provider.usage() != null}">
+            Local allowance (UTC): <strong th:text="${provider.usage().dailyUsed()} + ' / ' + ${provider.usage().dailyLimit()}"></strong> today,
+            <strong th:text="${provider.usage().monthlyUsed()} + ' / ' + ${provider.usage().monthlyLimit()}"></strong> this month.
+            This counts this installation, not your entire Duffel account.
+        </p>
+    </section>
+    <p class="card" role="alert" th:if="${error != null}" th:text="${error}"></p>
+    <form class="card form" method="post" th:action="@{/duffel}" th:object="${form}" id="duffelForm">
+        <input type="hidden" name="csrf" th:value="${csrf}">
+        <section class="row">
+            <label class="field grow"><span>From (airport code)</span>
+                <input th:field="*{origin}" required pattern="[A-Za-z]{3}" maxlength="3" placeholder="PRG"></label>
+            <label class="field grow"><span>To (airport code)</span>
+                <input th:field="*{destination}" required pattern="[A-Za-z]{3}" maxlength="3" placeholder="LHR"></label>
+        </section>
+        <section class="row">
+            <label class="field"><span>Departure date</span><input type="date" th:field="*{departureDate}" required></label>
+            <label class="field"><span>Return date (optional)</span><input type="date" th:field="*{returnDate}"></label>
+            <label class="field small"><span>Adults</span><input type="number" min="1" max="9" th:field="*{adults}" required></label>
+            <label class="field"><span>Connections per direction</span>
+                <select th:field="*{maxConnections}">
+                    <option value="0">No connections</option><option value="1">Up to 1</option><option value="2">Up to 2</option>
+                </select>
+            </label>
+        </section>
+        <button type="submit" th:disabled="${!provider.ready()}" id="duffelSubmit">Search with Duffel</button>
+        <span role="status" id="duffelProgress"></span>
+    </form>
+    <section th:if="${result != null}">
+        <div class="card">
+            <h2 th:text="${result.offers().size()} + ' offers'">Offers</h2>
+            <p th:text="'Retrieved ' + ${result.fetchedAt()} + ' (UTC). Refreshing this page does not search again.'"></p>
+            <p th:each="note : ${result.notes()}" th:text="${note}"></p>
+            <p th:if="${result.offers().isEmpty()}">No matching offers were returned. Try another date or allow a connection.</p>
+        </div>
+        <article class="card" th:each="offer : ${result.offers()}">
+            <h2><span th:text="${offer.totalPrice()}"></span>
+                <small th:text="'total for ' + ${offer.adults()} + ' adult(s)'"></small></h2>
+            <p th:text="'Source: ' + ${offer.provider()} + ' · Expires ' + ${offer.expiresAt()} + ' (UTC)'"></p>
+            <p th:if="${offer.expired()}"><strong>This offer has expired.</strong></p>
+            <section th:each="journey, direction : ${offer.journeys()}">
+                <h3 th:text="(${direction.index == 0} ? 'Outbound' : 'Return') + ' · ' + ${journey.connections()} + ' connection(s)'"></h3>
+                <div class="duffel-segment" th:each="segment : ${journey.segments()}">
+                    <strong th:text="${segment.origin()} + ' → ' + ${segment.destination()}"></strong>
+                    <p><strong th:text="'Operated by ' + ${segment.operatingCarrier()}"></strong>
+                        <span th:text="' · ' + ${segment.flightNumber()}"></span></p>
+                    <p th:text="'Departure: ' + ${segment.departure()} + ' (' + ${segment.originTimeZone()} + ')'"></p>
+                    <p th:text="'Arrival: ' + ${segment.arrival()} + ' (' + ${segment.destinationTimeZone()} + ')'"></p>
+                    <p th:if="${segment.marketingCarrier() != segment.operatingCarrier()}"
+                       th:text="'Marketed by ' + ${segment.marketingCarrier()}"></p>
+                    <p th:if="${segment.stops() > 0}" th:text="${segment.stops()} + ' intermediate stop(s) on this flight'"></p>
+                </div>
+            </section>
+        </article>
+    </section>
+</main>
+<script th:src="@{/duffel.js}"></script>
+</body>
+</html>
