@@ -1,0 +1,15 @@
+# Render Blueprint: Dashboard -> New -> Blueprint -> pick this repository.
+services:
+  - type: web
+    name: airplanner
+    runtime: docker
+    plan: free
+    branch: master
+    autoDeploy: true
+    healthCheckPath: /
+    envVars:
+      - key: SPRING_THYMELEAF_CACHE
+        value: "true"
+      # Optional; set in the Render dashboard, never committed.
+      - key: STAY22_AID
+        sync: false

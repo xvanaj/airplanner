@@ -53,6 +53,18 @@ Endpoints, if you want to script against it: `GET /api/search`, `GET /export.csv
 Settings live in `src/main/resources/application.properties` (`airplanner.market`,
 `airplanner.fare-cache-ttl`, `airplanner.cache`, `airplanner.max-refine`).
 
+### Hosting on Render
+
+The `Dockerfile` builds the web UI; `render.yaml` describes the service. In the Render dashboard
+choose **New → Blueprint**, pick this repository, and every push to `master` redeploys.
+The app listens on `PORT` when the host sets it. On the free plan the instance sleeps after
+15 minutes idle (the first request then takes a while), and the disk is ephemeral, so the fare cache
+starts empty after each restart. Keep Duffel disabled on a public URL: anyone could spend your quota.
+
+```bash
+docker build -t airplanner . && docker run -p 8080:8080 airplanner
+```
+
 ## Command line
 
 ```bash
