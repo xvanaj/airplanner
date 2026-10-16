@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>airplanner - Ryanair trip finder</title>
-    <link rel="stylesheet" th:href="@{/style.css}">
+    <link rel="stylesheet" th:href="@{/style.css(v='stay-links-2')}">
 </head>
 <body>
 
@@ -288,7 +288,24 @@
                        th:title="${o.airline()} + ' flies this route too - no public fares, price it there'"
                        th:text="${o.code()}">W6</a>
                     <a class="also compare" th:href="${r.compareLink()}" target="_blank" rel="noopener"
-                       title="Every airline on these dates - easyJet, Eurowings, Vueling, Pegasus, Smartwings and the rest">all</a>
+                        title="Every airline on these dates - easyJet, Eurowings, Vueling, Pegasus, Smartwings and the rest">all</a>
+                    <details class="accommodation">
+                        <summary th:aria-label="'Find accommodation in ' + ${r.accommodation().destination()}">stays</summary>
+                        <div class="stay-options">
+                            <strong th:text="${r.accommodation().destination()}">London, United Kingdom</strong>
+                            <small th:text="${r.accommodation().dates()}">Stay dates</small>
+                            <small class="stay-guests" th:text="${r.accommodation().guests()}">2 adults · 3 children (ages 2, 5, 7)</small>
+                            <div class="stay-providers">
+                                <a class="stay-provider" th:each="stay : ${r.accommodation().links()}"
+                                   th:classappend="'provider-' + ${stay.key()}" th:href="${stay.url()}"
+                                   th:aria-label="${stay.name()} + ' — opens in a new tab'"
+                                   target="_blank" rel="noopener noreferrer">
+                                    <span class="stay-provider-icon" aria-hidden="true" th:text="${stay.icon()}">⌂</span>
+                                    <span th:text="${stay.name()}">Airbnb</span>
+                                </a>
+                            </div>
+                        </div>
+                    </details>
                 </td>
             </tr>
             </tbody>
@@ -300,6 +317,9 @@
             they publish no usable fare API, so follow it to price those dates on wizzair.com.</span>
             <strong>all</strong> opens the same route and dates across every airline, including the ones
             that cannot be searched here.
+            <strong>stays</strong> opens accommodation searches for the destination city and the guests shown in the menu.
+            Dates use arrival and return departure when known; otherwise choose dates on the provider's site.
+            Hotel searches start with one room. Confirm dates, child ages, rooms and final prices there.
         </p>
 
         <div class="notes card" th:if="${not #lists.isEmpty(notes)}">

@@ -10,7 +10,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
-/** One result row, pre-formatted so the template stays free of logic. */
+/**
+ * One result row, pre-formatted so the template stays free of logic.
+ */
 public record TripView(int index,
                        String origin,
                        String originName,
@@ -29,17 +31,21 @@ public record TripView(int index,
                        String perNight,
                        String link,
                        String compareLink,
+                       AccommodationLinks accommodation,
                        boolean returnTrip,
                        List<AlsoOn> alsoOn) {
 
-    /** Another airline that flies this route, and where to price it. */
+    /**
+     * Another airline that flies this route, and where to price it.
+     */
     public record AlsoOn(String code, String airline, String link) {
     }
 
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("EEE dd MMM", Locale.ENGLISH);
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH);
 
-    public static TripView of(int index, Trip trip, AirportDirectory directory, RouteCoverage coverage) {
+    public static TripView of(int index, Trip trip, AirportDirectory directory, RouteCoverage coverage,
+                              String stay22Aid, int stayAdults, List<Integer> stayChildAges) {
         Flight out = trip.outbound();
         Flight back = trip.inbound();
         List<AlsoOn> alsoOn = coverage.alsoFlying(trip.originCode(), trip.destinationCode()).stream()
@@ -64,6 +70,7 @@ public record TripView(int index,
                 money(trip.pricePerNight().amount().toPlainString(), trip.pricePerAdult().currency()),
                 trip.bookingUrl(),
                 trip.compareUrl(),
+                AccommodationLinks.forTrip(trip, directory, stay22Aid, stayAdults, stayChildAges),
                 trip.isReturn(),
                 alsoOn);
     }

@@ -432,6 +432,93 @@ td.links {
     white-space: nowrap;
 }
 
+.accommodation {
+    margin-top: 0.5rem;
+    white-space: normal;
+    font-size: 0.8rem;
+}
+
+.accommodation summary {
+    cursor: pointer;
+    color: var(--accent);
+}
+
+.accommodation summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.stay-options {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+    width: 18rem;
+    max-width: 70vw;
+    padding-top: 0.75rem;
+}
+
+.stay-options small {
+    color: var(--muted);
+}
+
+.stay-providers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+}
+
+.stay-provider {
+    --provider-color: #475569;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 32px;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: var(--card);
+    color: var(--ink);
+    font-weight: 600;
+    font-size: 0.75rem;
+    line-height: 1.25;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.stay-provider:hover {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, var(--card));
+}
+
+.stay-provider:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+.stay-provider-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    border-radius: 4px;
+    background: var(--provider-color);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1;
+    font-weight: 750;
+}
+
+.provider-airbnb { --provider-color: #c93450; }
+.provider-bookingcom { --provider-color: #003b95; }
+.provider-expedia { --provider-color: #1e3a8a; }
+.provider-hotelscom { --provider-color: #b71935; }
+.provider-vrbo { --provider-color: #2353aa; }
+.provider-agoda { --provider-color: #6d3b9b; }
+.provider-stay22 { --provider-color: #0f766e; }
+
 a.also {
     display: inline-block;
     margin-left: 0.25rem;
@@ -465,6 +552,10 @@ a.also:hover {
 }
 
 @media (max-width: 640px) {
+    .stay-provider {
+        min-height: 40px;
+    }
+
     .field.small {
         width: 7rem;
     }

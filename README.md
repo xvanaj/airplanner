@@ -32,6 +32,20 @@ the departure window — outbound and return independently.
 - Leave *Fly to* empty and it switches to Ryanair's "anywhere" search: the cheapest
   destination from each of your origins, under the same day and time filters.
 - Every row has a **book** link that opens ryanair.com with those exact dates filled in.
+- Every row has a **stays** menu with free direct searches on **Airbnb**, **Booking.com**,
+  **Expedia**, **Hotels.com**, **Vrbo** and **Agoda**.
+  Links pass the destination city and default accommodation party: **2 adults and 3 children aged 2, 5 and 7**.
+  Configure `airplanner.stay-adults` and `airplanner.stay-child-ages` to change this independently of flight passengers.
+  Ages refer to check-in; they are not automatically increased with future travel dates.
+  Booking.com, Expedia, Hotels.com, Agoda and Stay22 links include child ages; Airbnb and Vrbo links include child/infant counts.
+  Dates run from local arrival to return departure;
+  for one-way trips, unknown arrivals or same-day returns, choose dates on the provider's site.
+  Hotel searches start with one room, which you can change there. Prices and availability are checked
+  on the provider's site; no paid API, API key or accommodation request is needed to render results.
+- Set `STAY22_AID` (or `airplanner.stay22-aid`) to also show **Stay22** using its recommended `/allez/roam` endpoint.
+  [Stay22 requires an affiliate ID](https://dev.stay22.com/docs/allez/parameters), available through free registration.
+  Without it, all six direct provider links remain available. Direct search URLs are website links, not stable APIs;
+  providers can change their format or reset filters, so confirm the search details after opening them.
 
 Endpoints, if you want to script against it: `GET /api/search`, `GET /export.csv`
 (both take the same query parameters as the page) and `GET /api/airports`.

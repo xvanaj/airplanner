@@ -30,7 +30,9 @@ import java.util.Locale;
 import java.util.Set;
 
 
-/** The one page, plus CSV and JSON of the same query. */
+/**
+ * The one page, plus CSV and JSON of the same query.
+ */
 @Controller
 public class SearchController {
 
@@ -74,7 +76,8 @@ public class SearchController {
             List<TripView> rows = new ArrayList<>();
             int index = 1;
             for (var trip : result.trips()) {
-                rows.add(TripView.of(index++, trip, directory, coverage));
+                rows.add(TripView.of(index++, trip, directory, coverage, properties.getStay22Aid(),
+                        properties.getStayAdults(), properties.getStayChildAges()));
             }
             model.addAttribute("result", result);
             model.addAttribute("rows", rows);
@@ -112,7 +115,9 @@ public class SearchController {
                 .body(new ResultFormatter(directory).csv(result));
     }
 
-    /** Airport list for the form's autocomplete, as JSON. */
+    /**
+     * Airport list for the form's autocomplete, as JSON.
+     */
     @GetMapping(value = "/api/airports", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public List<AirportView> airports() {
@@ -121,7 +126,9 @@ public class SearchController {
                 .toList();
     }
 
-    /** The named destination groups, with the airports each currently covers. */
+    /**
+     * The named destination groups, with the airports each currently covers.
+     */
     @GetMapping(value = "/api/groups", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public List<GroupView> groups() {
@@ -165,15 +172,21 @@ public class SearchController {
         return picks;
     }
 
-    /** An airport as the picker needs it. */
+    /**
+     * An airport as the picker needs it.
+     */
     public record AirportView(String code, String name, String city, String country) {
     }
 
-    /** One quick-pick chip: what it puts in the field, what it says, and whether it is usable. */
+    /**
+     * One quick-pick chip: what it puts in the field, what it says, and whether it is usable.
+     */
     public record PickView(String value, String label, String title, boolean available) {
     }
 
-    /** A named group as the picker needs it. */
+    /**
+     * A named group as the picker needs it.
+     */
     public record GroupView(String name, List<String> aliases, String description, List<String> airports) {
     }
 

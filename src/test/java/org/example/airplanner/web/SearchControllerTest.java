@@ -14,6 +14,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.Set;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
@@ -60,6 +62,8 @@ class SearchControllerTest {
         given(client.destinationsFrom(anyString())).willReturn(Set.of("STN"));
         given(client.cheapestPerDay(anyString(), anyString(), any(), anyString())).willReturn(List.of());
         given(properties.getMaxRefine()).willReturn(50);
+        given(properties.getStayAdults()).willReturn(2);
+        given(properties.getStayChildAges()).willReturn(List.of(2, 5, 7));
         given(properties.getHomeAirports()).willReturn(List.of("VIE", "BRQ"));
     }
 
@@ -77,6 +81,30 @@ class SearchControllerTest {
                         .param("departFrom", "2026-11-01").param("departTo", "2026-11-30"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Nothing matched")));
+    }
+
+    @Test
+    void rendersAccommodationChoicesWithoutAnAffiliateAccount() throws Exception {
+        given(client.cheapestPerDay(anyString(), anyString(), any(), anyString())).willReturn(List.of(
+                new RyanairClient.DayFare(LocalDate.of(2026, 11, 1),
+                        LocalDateTime.of(2026, 11, 1, 10, 0), LocalDateTime.of(2026, 11, 1, 12, 0),
+                        42.0, "EUR", true)));
+        mvc.perform(get("/").param("from", "DUB").param("to", "STN")
+                        .param("departFrom", "2026-11-01").param("departTo", "2026-11-01")
+                        .param("oneWay", "true").param("airlines", "RYANAIR"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("https://www.airbnb.com/s/homes?query=London%2C+United+Kingdom")))
+                .andExpect(content().string(containsString("https://www.booking.com/searchresults.html?ss=London%2C+United+Kingdom")))
+                .andExpect(content().string(containsString("https://www.expedia.com/Hotel-Search?destination=London%2C+United+Kingdom")))
+                .andExpect(content().string(containsString("https://www.hotels.com/Hotel-Search?destination=London%2C+United+Kingdom")))
+                .andExpect(content().string(containsString("https://www.vrbo.com/search?destination=London%2C+United+Kingdom")))
+                .andExpect(content().string(containsString("https://www.agoda.com/search?textToSearch=London%2C+United+Kingdom")))
+                .andExpect(content().string(containsString("Find accommodation in London, United Kingdom")))
+                .andExpect(content().string(containsString("2 adults · 3 children (ages 2, 5, 7)")))
+                .andExpect(content().string(containsString("stay-provider provider-bookingcom")))
+                .andExpect(content().string(containsString("group_children=3&amp;age=2&amp;age=5&amp;age=7")))
+                .andExpect(content().string(containsString("Choose stay dates")))
+                .andExpect(content().string(not(containsString("www.stay22.com"))));
     }
 
     @Test
